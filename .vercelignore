@@ -1,0 +1,11 @@
+# Never upload: local database, recordings, keys, virtualenv, caches
+.data
+.env
+.env.*
+!.env.example
+.venv
+**/__pycache__
+.pytest_cache
+.ruff_cache
+tests
+docs

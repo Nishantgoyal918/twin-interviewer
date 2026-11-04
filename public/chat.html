@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chat</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="chat">
+  <header>
+    <div class="row"><span class="brand">interview</span> <span class="muted small" id="status">connecting…</span></div>
+    <button id="end">Finish for now</button>
+  </header>
+  <div class="log" id="log" aria-live="polite"></div>
+  <div class="error small" id="error" hidden style="padding: 0 16px"></div>
+  <form class="composer" id="form">
+    <label for="input" class="sr" hidden>Message</label>
+    <textarea id="input" rows="1" placeholder="Type your answer…" autocomplete="off"></textarea>
+    <button class="primary" id="send" type="submit">Send</button>
+  </form>
+</div>
+<script type="module" src="/chat.js"></script>
+</body>
+</html>

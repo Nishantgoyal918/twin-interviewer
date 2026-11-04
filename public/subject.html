@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Your interview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main class="wrap stack">
+  <span class="brand">twin interviewer</span>
+  <div id="loading" class="muted">Loading…</div>
+  <div id="error" class="error" hidden></div>
+  <section id="consent" class="stack" hidden>
+    <h1 id="title">Hi!</h1>
+    <div class="card stack">
+      <p><b>You'll be talking with an AI interviewer.</b> It asks short questions and mostly listens.</p>
+      <p id="purpose" class="muted"></p>
+      <p>What you say is saved, and in voice chats <b>your voice is recorded</b>, to build a digital twin of you.
+         You can stop any time, and skip any question.</p>
+      <p class="muted small">For voice, headphones work best so the AI's voice doesn't end up in your recording.</p>
+    </div>
+    <div class="row" id="choices"></div>
+  </section>
+</main>
+<script type="module">
+import { api, inviteToken, esc } from "/common.js";
+const token = inviteToken();
+const $ = id => document.getElementById(id);
+try {
+  const info = await api(`/api/invites/${encodeURIComponent(token)}`);
+  $("title").innerHTML = `Hi <span class="grad">${esc(info.subject_name)}</span>,<br>let's talk.`;
+  $("purpose").textContent = info.audience ? `This twin is for ${info.audience}.` : "";
+  const choices = $("choices");
+  if (info.modalities.includes("voice"))
+    choices.insertAdjacentHTML("beforeend", `<a class="btn primary" href="/s/${esc(token)}/voice">Start talking</a>`);
+  if (info.modalities.includes("text"))
+    choices.insertAdjacentHTML("beforeend", `<a class="btn ${info.modalities.includes("voice") ? "" : "primary"}" href="/s/${esc(token)}/chat">Type instead</a>`);
+  $("consent").hidden = false;
+} catch (e) {
+  $("error").textContent = e.message; $("error").hidden = false;
+} finally { $("loading").hidden = true; }
+</script>
+</body>
+</html>

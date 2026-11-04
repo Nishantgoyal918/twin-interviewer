@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voice interview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main class="wrap stack" style="text-align:center">
+  <h1>Let's <span class="grad">talk</span></h1>
+  <p class="muted" id="status">Tap start when you're ready. Your voice is recorded.</p>
+  <div class="orb" id="orb">ready</div>
+  <p class="caption" id="caption" aria-live="polite"></p>
+  <div class="row" style="justify-content:center">
+    <button class="primary" id="start">Start</button>
+    <button id="stop" hidden>Finish</button>
+  </div>
+  <p class="small muted" id="timer"></p>
+  <p class="error" id="error" hidden></p>
+  <audio id="remote" autoplay></audio>
+</main>
+<script type="module" src="/voice.js"></script>
+</body>
+</html>

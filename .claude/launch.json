@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {"name": "dev", "runtimeExecutable": "uv", "runtimeArgs": ["run", "python", "scripts/dev.py"], "port": 8000}
+  ]
+}

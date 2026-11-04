@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Twin Interviewer AI Design</title>
+<meta name="description" content="The AI design of Twin Interviewer: diagrams, the rules each part follows, and why.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* TwinCafe look (cream paper, serif headings, Manrope), tuned for a technical reader:
+   diagrams carry the story, prose is one line, and the rules sit in expandables. */
+:root {
+  --paper: #FFFEFB; --paper-2: #F7F4EE; --card: #FFFFFF;
+  --ink: #1A1A17; --ink-2: #39383A; --muted: #75726C;
+  --rule: rgba(15, 15, 15, 0.08); --edge: rgba(15, 15, 15, 0.18);
+  --live: #D6336C; --brain: #5E6AEC; --after: #C2410C; --good: #2F7D4F;
+  --grad: linear-gradient(100deg, #E35A0A 0%, #ED4C7D 50%, #5E6AEC 100%);
+  --sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Instrument Serif", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #161513; --paper-2: #211F1C; --card: #1C1B18;
+    --ink: #F3F0EA; --ink-2: #D9D5CD; --muted: #A29E96;
+    --rule: rgba(255, 255, 255, 0.09); --edge: rgba(255, 255, 255, 0.2);
+    --live: #F06595; --brain: #8E97F5; --after: #F08A4B; --good: #5CBF85;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.6 var(--sans);
+       padding: 40px max(16px, env(safe-area-inset-right, 0px)) 80px max(16px, env(safe-area-inset-left, 0px)); }
+main { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 64px; }
+h1, h2 { font-family: var(--serif); font-weight: 400; line-height: 1.1; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2.3rem, 6vw, 3.4rem); }
+h1 em { font-style: italic; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+h2 { font-size: 1.9rem; }
+h2 .n { font-family: var(--mono); font-size: 0.9rem; color: var(--muted); vertical-align: middle; margin-right: 8px; }
+p { margin: 0; max-width: 70ch; }
+a { color: inherit; }
+code, .mono { font-family: var(--mono); font-size: 0.84em; }
+code { background: var(--paper-2); padding: 1px 5px; border-radius: 5px; }
+.muted { color: var(--muted); }
+.eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+header, section { display: flex; flex-direction: column; gap: 16px; }
+
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+nav.toc a { text-decoration: none; font-size: 0.8rem; font-weight: 600; padding: 4px 12px; border-radius: 99px;
+            background: var(--paper-2); color: var(--ink-2); }
+
+.stack-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.stack-strip div { background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 10px 12px; min-width: 0; }
+.stack-strip b { display: block; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.stack-strip span { font-size: 0.88rem; }
+
+.diagram { background: var(--card); border: 1px solid var(--rule); border-radius: 20px; padding: 20px 12px;
+           overflow-x: auto; }
+.diagram pre.mermaid { margin: 0; display: flex; justify-content: center; font-family: var(--sans); }
+@media (max-width: 700px) {
+  .diagram.wide pre.mermaid { justify-content: flex-start; }
+  .diagram.wide svg { min-width: 960px; }
+}
+.diagram pre.mermaid:not([data-processed]) { color: transparent; min-height: 120px; }
+
+.why { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.why div { border-left: 3px solid var(--brain); padding: 2px 0 2px 12px; min-width: 0; }
+.why b { display: block; font-size: 0.9rem; }
+.why span { font-size: 0.86rem; color: var(--ink-2); }
+
+details { background: var(--paper-2); border-radius: 14px; padding: 0 16px; }
+details[open] { padding-bottom: 14px; }
+summary { cursor: pointer; padding: 12px 0; font-weight: 700; font-size: 0.9rem; list-style: none; display: flex; gap: 8px; align-items: center; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "+"; font-family: var(--mono); color: var(--muted); width: 1em; }
+details[open] > summary::before { content: "−"; }
+details > *:not(summary) { margin-top: 10px; }
+details ol, details ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.win { color: var(--good); font-weight: 700; }
+
+footer { border-top: 1px solid var(--rule); padding-top: 20px; font-size: 0.875rem; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <span class="eyebrow">Twin Interviewer · AI design</span>
+  <h1>An interviewer that <em>listens</em> while it talks</h1>
+  <p>A voice interviewer that collects <b>content</b> (what someone knows) and <b>style</b> (how they
+     say it) to build a digital twin of them, while keeping a volunteer engaged.</p>
+  <div class="stack-strip">
+    <div><b>Voice</b><span>OpenAI GPT-Live, speech-to-speech over WebRTC</span></div>
+    <div><b>LLM steps</b><span><code>gpt-5-mini</code>, low reasoning effort</span></div>
+    <div><b>Planner</b><span>plain Python, deterministic</span></div>
+    <div><b>Transcript</b><span>Deepgram nova-3, after the call</span></div>
+    <div><b>Memory</b><span>Postgres + pgvector, Redis for hot state</span></div>
+    <div><b>Host</b><span>Vercel serverless, QStash jobs</span></div>
+  </div>
+  <nav class="toc">
+    <a href="#arch">1 · Architecture</a><a href="#turn">2 · One turn</a><a href="#planner">3 · Planner</a>
+    <a href="#rules">4 · Interviewer rules</a><a href="#end">5 · Ending a call</a><a href="#after">6 · After the call</a>
+    <a href="#twin">7 · Twin</a><a href="#sim">8 · Testing</a><a href="#weak">9 · Still weak</a>
+  </nav>
+</header>
+
+<!-- 1 ------------------------------------------------------------------------------------- -->
+<section id="arch">
+  <h2><span class="n">01</span>Architecture: mouth, brain, memory</h2>
+  <p class="muted">The voice model owns timing. Our code owns strategy, a few seconds behind.</p>
+  <div class="diagram wide"><pre class="mermaid">
+flowchart LR
+  P(["Person"]) <-->|"audio, WebRTC"| GL["GPT-Live<br/>speech-to-speech"]
+  GL -->|"transcript deltas"| B["Browser<br/>turn grouping, VAD"]
+  B -->|"POST /turn<br/>fast lane"| API["FastAPI<br/>(Vercel)"]
+  B -->|"POST /analyze<br/>slow lane"| API
+  API --> OBS["Observer LLM"]
+  OBS --> PL["Planner<br/>(code)"]
+  PL -->|"coach's tip"| B
+  B -->|"session.thinking.append<br/>(silent)"| GL
+  B -->|"mic segments +<br/>whole-call parts"| ST[("Storage")]
+  ST --> DG["Deepgram<br/>verbatim"]
+  DG --> JOBS["After-call jobs"]
+  JOBS --> DB[("Postgres<br/>+ pgvector")]
+  API <--> DB
+  classDef live fill:#FDEBF1,stroke:#D6336C,color:#1A1A17
+  classDef brain fill:#ECEEFD,stroke:#5E6AEC,color:#1A1A17
+  classDef after fill:#FDEFE6,stroke:#C2410C,color:#1A1A17
+  class P,GL live
+  class OBS,PL,API brain
+  class ST,DG,JOBS,DB after
+</pre></div>
+
+  <div class="tbl"><table>
+    <thead><tr><th>Speech-to-speech (chosen)</th><th></th><th>STT → LLM → TTS</th></tr></thead>
+    <tbody>
+      <tr><td class="win">One model loop; barge-in, backchannels ("Mm.") built in</td><td class="muted">turn-taking</td><td>Hand-built VAD + endpointing per hop</td></tr>
+      <tr><td class="win">~0.7 s to connect, ~2.4 s reply after they stop (measured)</td><td class="muted">latency</td><td>Three network hops, each adds delay</td></tr>
+      <tr><td class="win">Browser ↔ OpenAI directly; our server only does short HTTP</td><td class="muted">hosting</td><td>Needs a long-running streaming server (not serverless)</td></tr>
+      <tr><td class="win">Mixed Hindi–English heard exactly, answered in kind</td><td class="muted">languages</td><td>Depends on each component</td></tr>
+      <tr><td>Less control per word; largely deaf to tone</td><td class="muted">control</td><td class="win">Full control of text and voice</td></tr>
+      <tr><td>$0.05/min, per second</td><td class="muted">cost</td><td>Per component; can be cheaper</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">The two losses are covered by design: strategy moves to our planner, and tone comes from our own signals (both §3).</p>
+
+  <details>
+    <summary>GPT-Live events we use</summary>
+    <div class="tbl"><table>
+      <thead><tr><th>Event</th><th>Direction</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td><code>POST /v1/live/sessions</code></td><td>server → OpenAI</td><td>create session + SDP exchange; the key never reaches the browser</td></tr>
+        <tr><td><code>session.input_transcript.delta</code></td><td>in</td><td>their words (with <code>start_ms/end_ms</code>)</td></tr>
+        <tr><td><code>session.output_transcript.delta</code></td><td>in</td><td>interviewer words; the input→output switch closes a turn (no turn-done event exists)</td></tr>
+        <tr><td><code>session.thinking.append</code></td><td>out</td><td>planner tips: silent, never interrupts (≤ 500 tokens)</td></tr>
+        <tr><td><code>session.commentary.append</code></td><td>out</td><td>answer to a delegation; nudges (first words, dead air)</td></tr>
+        <tr><td><code>session.delegation.created</code></td><td>in</td><td>model asks for help → <code>/api/delegation</code> returns ≤ 3 relevant notes + the tip</td></tr>
+        <tr><td><code>session.close</code></td><td>out</td><td>hang-up (no server-side max duration exists, so the browser and server enforce it)</td></tr>
+      </tbody>
+    </table></div>
+  </details>
+</section>
+
+<!-- 2 ------------------------------------------------------------------------------------- -->
+<section id="turn">
+  <h2><span class="n">02</span>One turn, two lanes</h2>
+  <p class="muted">The reply never waits for the thinking.</p>
+  <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant P as Person
+  participant G as GPT-Live
+  participant B as Browser
+  participant F as /turn (fast)
+  participant S as /analyze (slow)
+  P->>G: speaks
+  G->>P: replies at once (its own timing)
+  G-->>B: transcript deltas
+  B->>F: interviewer turn + their turn + audio features
+  F-->>B: saved (idx assigned)
+  B->>S: analyze in background
+  Note over S: observer LLM (~6 s), tags, planner
+  S-->>B: decision + tip
+  B->>G: session.thinking.append(tip)
+  Note over G: uses it on a later turn
+</pre></div>
+  <details>
+    <summary>Consistency rules</summary>
+    <ul>
+      <li><code>/turn</code> holds a per-session Redis lock (waits ≤ 5 s, else 409); <code>idx</code> comes from Postgres; idempotent on <code>client_turn_id</code>.</li>
+      <li><code>/analyze</code> locks twice: read → <b>unlocked</b> observer call → apply. It re-checks <code>analyzed_at</code>, so two analyses of one turn stay idempotent.</li>
+      <li>SessionState lives in Redis (hot) with a Postgres snapshot per decision; <code>last_analyzed_idx</code> never moves backwards.</li>
+      <li>Backchannels from the person (≤ 2 words, &lt; 1 s) aren't posted as turns.</li>
+      <li>Turns the browser never analyzed are picked up at session end (<code>analyze_backlog</code>).</li>
+    </ul>
+  </details>
+  <details>
+    <summary>Observer output (one LLM call per answer)</summary>
+    <div class="tbl"><table>
+      <thead><tr><th>Field</th><th>Rule</th></tr></thead>
+      <tbody>
+        <tr><td><code>facts[]</code></td><td>durable facts from the latest answer only; kind = fact | preference | person | story_hook | followup. Passing states ("tired today") are never facts.</td></tr>
+        <tr><td><code>topics[]</code></td><td>1–4 labels</td></tr>
+        <tr><td><code>register</code></td><td>instructing | storytelling | opinion | reacting | small_talk | other</td></tr>
+        <tr><td><code>deflection</code></td><td>true only on an explicit refusal of a topic. Vague or tired answers are not deflection (it bars the topic forever).</td></tr>
+        <tr><td><code>lexical_engagement</code></td><td>high | medium | low | unclear, from the words only. A short reply to a remark, or a cut-off fragment → unclear. Laughter is never low.</td></tr>
+        <tr><td><code>slot_updates[]</code></td><td>which coverage slots this answer filled (partial | done)</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted">It replaces a separate tone-judge call: one LLM call per turn, not two.</p>
+  </details>
+</section>
+
+<!-- 3 ------------------------------------------------------------------------------------- -->
+<section id="planner">
+  <h2><span class="n">03</span>Planner: deterministic, trend-based</h2>
+  <p class="muted">Plain code: predictable, testable, free; every decision is logged and replayable.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart TD
+  A["Answer analyzed"] --> D{"deflection?"}
+  D -- yes --> AV["avoidant"]
+  D -- no --> FR{"unclear words<br/>and fewer than 8 words?"}
+  FR -- "yes: fragment" --> UN["uncertain"]
+  FR -- no --> SC["score = words + signal tags<br/>+ shortness penalty"]
+  SC --> T["turn read:<br/>engaged ≥ 2 · flat ≤ −1 · else uncertain"]
+  T --> TR{"trend:<br/>2 of last 3 agree"}
+  AV --> POL
+  UN --> TR
+  TR --> TI{"past target time, or late<br/>and 3 flat in a row?"}
+  TI -- yes --> W["wrap_up"]
+  TI -- no --> POL{"state"}
+  POL -- avoidant --> DT["drop_topic<br/>never raise again"]
+  POL -- flat --> CK["change_kind<br/>choice / other register"]
+  POL -- engaged --> RUN{"engaged run<br/>≥ 3 (≥ 2 late)?"}
+  RUN -- no --> LR["let_them_run"]
+  RUN -- yes --> BR["bridge<br/>firm tip"]
+  POL -- uncertain --> CO{"goal waited<br/>≥ 90 s (60 s late)?"}
+  CO -- no --> C1["continue<br/>soft goal"]
+  CO -- yes --> C2["skip goal,<br/>next untouched area"]
+  classDef firm fill:#ECEEFD,stroke:#5E6AEC,color:#1A1A17
+  class BR,C2 firm
+</pre></div>
+
+  <div class="why">
+    <div><b>Breadth first</b><span>An area nothing is known about beats finishing one under way.</span></div>
+    <div><b>Engaged ≠ never steer</b><span>Let them run, then bridge on the warm moment.</span></div>
+    <div><b>Trends, not turns</b><span>One flat answer changes nothing; a misread can end a good call.</span></div>
+    <div><b>Firm vs soft tips</b><span>Firm ones (bridge, late gaps) repeat until acted on.</span></div>
+  </div>
+
+  <details>
+    <summary>Turn scoring</summary>
+    <div class="tbl"><table>
+      <thead><tr><th>Input</th><th class="num">Score</th></tr></thead>
+      <tbody>
+        <tr><td>Observer words: high / medium / unclear / low</td><td class="num">+2 / +1 / 0 / −1</td></tr>
+        <tr><td>Each signal tag above / below baseline (reply words, energy, voiced time, laughter, rate…)</td><td class="num">+0.5 / −0.5</td></tr>
+        <tr><td>Long pause before answering (≥ 2.5 s)</td><td class="num">−0.5</td></tr>
+        <tr><td>Answer under half the average of their last 3</td><td class="num">−1</td></tr>
+        <tr><td>Result: engaged / flat / uncertain</td><td class="num">≥ 2 / ≤ −1 / else</td></tr>
+      </tbody>
+    </table></div>
+    <ul>
+      <li>Trend window 3, needs 2 agreeing readable turns. One engaged answer ends a flat stretch at once.</li>
+      <li>Tired → wrap up: elapsed ≥ target, or elapsed ≥ 70% of target with the last 3 readable turns all flat.</li>
+    </ul>
+  </details>
+  <details>
+    <summary>Signals and confidence</summary>
+    <div class="tbl"><table>
+      <thead><tr><th>Source</th><th>Features</th></tr></thead>
+      <tbody>
+        <tr><td>Browser (live, Web Audio)</td><td><code>voiced_s</code>, <code>energy_mean_db</code>, <code>energy_var</code>, <code>pause_count</code>, <code>pause_mean_s</code>, <code>ttfv_s</code> (time to first voice)</td></tr>
+        <tr><td>Deepgram word timings (after)</td><td><code>speaking_rate_wps</code>, pauses ≥ 250 ms, <code>filler_rate</code>, <code>code_switch_rate</code> (script changes), <code>sentiment</code> (English only)</td></tr>
+        <tr><td>Text mode</td><td>reply length, bursts, questions back, laughter/emoji, latency within a burst</td></tr>
+      </tbody>
+    </table></div>
+    <ul>
+      <li>Every feature becomes a z-score against <i>this person's</i> baseline (Welford running stats, per twin × modality × source). Only |z| ≥ 1 makes a tag.</li>
+      <li>Confidence = min(0.9, 0.3 + n/50); acted on only at ≥ 0.5.</li>
+      <li>Cold start (baseline under 20 turns): a within-session baseline, confidence capped at 0.4, so early calls run on words alone.</li>
+      <li>Never emits emotion labels as facts.</li>
+    </ul>
+  </details>
+  <details>
+    <summary>Goal choice</summary>
+    <ul>
+      <li>Goals come from the twin spec: content domains (high → low priority) × slots, plus style registers (instructing, storytelling, opinion…).</li>
+      <li>Order: domains with nothing learned yet → partially filled slots → the rest. Goals skipped this session are excluded.</li>
+      <li>Second half of the call, with the goal's whole area untouched → a firm tip: <i>"With your next question, move on: …"</i></li>
+      <li>Every move-on tip asks for an easy story opener (a favourite, a time when, a proudest moment), not a how-does-it-work question.</li>
+    </ul>
+  </details>
+</section>
+
+<!-- 4 ------------------------------------------------------------------------------------- -->
+<section id="rules">
+  <h2><span class="n">04</span>Interviewer rules</h2>
+  <p class="muted">Goal: the person talks ≥ 75% of the time, and their style isn't contaminated by ours.</p>
+  <div class="diagram wide"><pre class="mermaid">
+flowchart LR
+  R["Their answer"] --> X["Short real reaction<br/>(laugh, small opinion)"]
+  X --> Q["ONE question on one<br/>concrete detail they said"]
+  Q --> L["Then silence:<br/>let them talk"]
+  N1["✗ summary of their answer"]:::no
+  N2["✗ their words or catchphrases"]:::no
+  N3["✗ 'tell me more' / 'how did that feel'"]:::no
+  classDef no fill:#FDEFE6,stroke:#C2410C,color:#1A1A17
+</pre></div>
+  <details>
+    <summary>The 12 rules in the system prompt (condensed)</summary>
+    <ol>
+      <li>Be a person: a short real reaction, then one question. 2–3 sentences. React in your own words, not theirs.</li>
+      <li>One question per turn; no multi-part questions. End every turn with something they can answer (unless saying goodbye).</li>
+      <li>Follow-ups pick one concrete detail ("the blue bicycle" → "Where did you ride it?"). Never generic follow-ups, never quoting them back.</li>
+      <li>Don't praise every answer. Don't summarize.</li>
+      <li>Match their formality; never copy their vocabulary, fillers, slang or catchphrases.</li>
+      <li>Allow silences. Never interrupt a story, even an off-plan one.</li>
+      <li>Use earlier-session details naturally.</li>
+      <li>Deflection → back off at once; never return.</li>
+      <li>One warm goodbye turn when told to wrap up; at most "Bye, take care!" after. Never say goodbye before being told.</li>
+      <li>Languages: follow the person (Hinglish allowed).</li>
+      <li>Coach's tips: soft goals can wait; "move on" tips happen at the end of their current thought, with one reaction and a bridge.</li>
+      <li>Never claim to be human.</li>
+    </ol>
+  </details>
+  <details>
+    <summary>Browser-side conversation rules</summary>
+    <ul>
+      <li><b>Dead air:</b> silence for 7 s after a statement or 15 s after a question → one nudge (an easier question or a choice). Max 2 until they speak. "Silence" = no transcribed words, so fans and TVs don't count.</li>
+      <li><b>Tips:</b> soft tips are sent once; firm tips are re-sent after any interviewer question that didn't make the move. No tips once the call is ending.</li>
+      <li><b>Opening:</b> the instructions alone didn't make GPT-Live speak first within 25 s; a commentary nudge after <code>session.started</code> does (2.5–10 s).</li>
+    </ul>
+  </details>
+</section>
+
+<!-- 5 ------------------------------------------------------------------------------------- -->
+<section id="end">
+  <h2><span class="n">05</span>Ending a call</h2>
+  <p class="muted">Two polite parties trade "bye" forever, so the browser hangs up, not the model.</p>
+  <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+  [*] --> Talking
+  Talking --> Wrapping: planner wrap_up, time up,<br/>or interviewer says bye on its own
+  Wrapping --> Farewell: first interviewer turn<br/>with no question
+  Farewell --> Reply: they answer,<br/>interviewer replies once
+  Reply --> [*]: hang up 2.5 s after<br/>its last words
+  Farewell --> [*]: 8 s of quiet
+  Farewell --> Wrapping: they say over 15 words, or it asks<br/>something new (once only)
+</pre></div>
+  <details>
+    <summary>Why each rule exists (all found in simulated calls)</summary>
+    <ul>
+      <li>"Mm." isn't a farewell: turns of ≤ 2 words don't count.</li>
+      <li>Hang up after the interviewer's reply, not after silence: bye/bye ping-pong never goes quiet.</li>
+      <li>Its own goodbye counts as wrapping: otherwise the dead-air nudge or a coach's tip restarted the call with a fresh question right after "Bye, take care!".</li>
+      <li>Reopen once only: the second farewell ends the call.</li>
+    </ul>
+  </details>
+</section>
+
+<!-- 6 ------------------------------------------------------------------------------------- -->
+<section id="after">
+  <h2><span class="n">06</span>After the call: the corpus</h2>
+  <p class="muted">Two transcripts: the live one to talk with, a verbatim one to learn style from (the live one tidies away fillers and false starts).</p>
+  <div class="diagram wide"><pre class="mermaid">
+flowchart LR
+  E(["Session ends"]) --> J1["analyze_backlog"]
+  J1 --> J2["transcribe_session<br/>Deepgram per segment"]
+  J2 --> J3["align_transcript<br/>merge overlaps, drop echo"]
+  J3 --> J4["timing_features<br/>rate, pauses, fillers, code-switch"]
+  J4 --> J5["coverage_update"]
+  J5 --> O1["notes + embeddings"]
+  J5 --> O2["speech habits +<br/>voice examples"]
+  J5 --> O3["probes:<br/>can the twin answer?"]
+  O3 -->|"gaps become goals"| PLN["next session's planner"]
+</pre></div>
+  <details>
+    <summary>Recording and transcription details</summary>
+    <ul>
+      <li><b>Mic segments:</b> rotating recorders, 60 s each with 2 s overlap, so each is a complete WebM file (timesliced WebM chunks aren't decodable alone). Presigned PUT straight to storage, with an IndexedDB retry queue.</li>
+      <li><b>Whole call:</b> a separate stereo recording (interviewer left, person right) in 10-minute parts, for listening back only.</li>
+      <li><b>Deepgram:</b> nova-3; the language follows the person (<code>en</code> keeps "um", <code>multi</code> handles Hinglish but drops fillers); <code>sentiment</code> for English only. Async with a callback; audio goes by signed URL and never passes through our functions.</li>
+      <li><b>Alignment:</b> one session clock (t0 = mic start). A word goes to the turn whose [start − 300 ms, end + 300 ms] contains it. Echo removal: the interviewer's words leaking into the mic are matched in order and time and dropped; barge-in words are kept.</li>
+    </ul>
+  </details>
+</section>
+
+<!-- 7 ------------------------------------------------------------------------------------- -->
+<section id="twin">
+  <h2><span class="n">07</span>The twin: show, don't describe</h2>
+  <p class="muted">A rough twin, built only to measure what the interviews still miss.</p>
+  <div class="diagram wide"><pre class="mermaid">
+flowchart LR
+  Q["Question"] --> EM["embed"]
+  EM --> RET["top 8 corpus passages<br/>(pgvector)"]
+  Q --> NP["3 nearest real<br/>question → answer pairs"]
+  VE["4–5 picked<br/>voice examples"] --> MSG
+  NP --> MSG["prior chat turns<br/>(user / assistant)"]
+  RET --> SYS["system prompt:<br/>notes, passages, habits,<br/>usual answer length"]
+  MSG --> LLM["gpt-5-mini"]
+  SYS --> LLM
+  LLM --> A["Answer in their voice"]
+</pre></div>
+  <div class="tbl"><table>
+    <thead><tr><th>8-question test</th><th class="num">Rules only</th><th class="num">+ real pairs</th><th class="num">+ length line</th><th class="num">Real person</th></tr></thead>
+    <tbody>
+      <tr><td>Kavya's "like" per 100 words</td><td class="num">3.7</td><td class="num">4.5</td><td class="num win">6.8</td><td class="num">14.4</td></tr>
+      <tr><td>Venkat's "correct" per 100 words</td><td class="num">5.5</td><td class="num">6.4</td><td class="num win">8.8</td><td class="num">12.6</td></tr>
+      <tr><td>Median answer length (words)</td><td class="num">156</td><td class="num">–</td><td class="num win">25</td><td class="num">20</td></tr>
+    </tbody>
+  </table></div>
+  <details>
+    <summary>How examples and habits are picked</summary>
+    <ul>
+      <li><b>Speech habits:</b> a pet phrase counts only if seen ≥ 3 times across ≥ 2 answers; stored with its rate per 100 words.</li>
+      <li><b>Voice examples:</b> the LLM picks 4–5 pairs that cover their range of styles. Code first drops answers that are tired (low engagement), split mid-sentence, under 15 words, or about a passing mood ("I'm exhausted").</li>
+      <li><b>Length line:</b> "usually about {median} words, rarely over {p90}". This was the single biggest fix.</li>
+      <li><code>gpt-5</code> wasn't worth it: no better on style, much slower, and it invented a fact.</li>
+    </ul>
+  </details>
+</section>
+
+<!-- 8 ------------------------------------------------------------------------------------- -->
+<section id="sim">
+  <h2><span class="n">08</span>Testing with simulated people</h2>
+  <p class="muted">A second GPT-Live session plays a person from a hidden card. Its mood is earned turn by turn.</p>
+  <div class="diagram wide"><pre class="mermaid">
+flowchart LR
+  CARD["Persona card<br/>facts, habits, avoid-topic,<br/>lights up / dulls"] --> PER["Persona<br/>(GPT-Live #2)"]
+  PER <-->|"audio piped<br/>both ways"| APP["Real voice page<br/>(the product)"]
+  APP -->|"each interviewer turn"| JU["Judge LLM:<br/>effect −2…+2"]
+  JU -->|"energy 0–10 → mood cue"| PER
+  APP --> SC["Scorecard"]
+</pre></div>
+  <details>
+    <summary>Mood model and scorecard</summary>
+    <ul>
+      <li>Energy 0–10: ≤ 3 bored (exhausted past stamina), 4–6 smiling, ≥ 7 excited. Each non-backchannel interviewer turn: energy += effect; past stamina, −0.5 per turn.</li>
+      <li>Headline: brief topics covered (a domain counts once a slot is <i>done</i>), facts mentioned vs the hidden card, average energy. A happy call that covers one topic is a failure.</li>
+      <li>Also: turn quality (no echo, one question, under 60 words), talk share, mood-read accuracy, wrap-up timing, sensitive topic never raised, habits captured / used by the twin / not copied by the interviewer, twin probe answers.</li>
+    </ul>
+  </details>
+  <div class="tbl"><table>
+    <thead><tr><th>Same persona, production</th><th class="num">Before planner fix</th><th class="num">After</th></tr></thead>
+    <tbody>
+      <tr><td>Brief topics covered</td><td class="num">3/5</td><td class="num win">4/5</td></tr>
+      <tr><td>Facts mentioned</td><td class="num">2/6</td><td class="num win">3/6</td></tr>
+      <tr><td>Average energy</td><td class="num">8.8</td><td class="num">8.8</td></tr>
+      <tr><td>Good interviewer turns</td><td class="num">74%</td><td class="num win">77%</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 9 ------------------------------------------------------------------------------------- -->
+<section id="weak">
+  <h2><span class="n">09</span>Guardrails and what's still weak</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Guardrail</th><th>Limit</th></tr></thead>
+    <tbody>
+      <tr><td>Global spend breaker (LLM tokens + voice minutes)</td><td class="mono">$5 / day</td></tr>
+      <tr><td>Per twin</td><td class="mono">10 sessions, 30 voice min / day</td></tr>
+      <tr><td>Per IP</td><td class="mono">60 requests / min</td></tr>
+      <tr><td>Voice caps when Redis is down</td><td class="mono">fail closed</td></tr>
+      <tr><td>Invite link → session token</td><td class="mono">short-lived HMAC</td></tr>
+    </tbody>
+  </table></div>
+  <div class="why">
+    <div><b>Mood read: 10–30%</b><span>Planner vs the persona's real mood. Speech arrives in fragments; tone signals are crude.</span></div>
+    <div><b>Catchphrase copying</b><span>With strong talkers, the interviewer still echoes their pet word.</span></div>
+    <div><b>No audio emotion model</b><span>An emotion2vec-style worker is planned as an optional add-on, not built.</span></div>
+  </div>
+</section>
+
+<footer class="muted">
+  Full system design (data model, hosting, every flow): <a href="/design-doc/full">/design-doc/full</a>
+</footer>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  // Diagrams follow the page's colours and light/dark mode.
+  const css = getComputedStyle(document.documentElement);
+  const v = name => css.getPropertyValue(name).trim();
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  if (dark) {   // the classDefs use light pastels: swap them for dark tints with light text
+    const tint = { "fill:#FDEBF1": "fill:#3A1F29", "fill:#ECEEFD": "fill:#23264A", "fill:#FDEFE6": "fill:#3A2516" };
+    document.querySelectorAll("pre.mermaid").forEach(p => {
+      p.textContent = p.textContent.replace(/fill:#(FDEBF1|ECEEFD|FDEFE6)/g, m => tint[m])
+        .replace(/color:#1A1A17/g, "color:#F3F0EA");
+    });
+  }
+  mermaid.initialize({
+    startOnLoad: true, theme: "base", securityLevel: "strict",
+    fontFamily: "Manrope, system-ui, sans-serif",
+    themeVariables: {
+      darkMode: dark, background: v("--card"), fontSize: "14px",
+      primaryColor: v("--paper-2"), primaryTextColor: v("--ink"), primaryBorderColor: v("--edge"),
+      lineColor: v("--muted"), textColor: v("--ink"), secondaryColor: v("--paper-2"), tertiaryColor: v("--card"),
+      noteBkgColor: v("--paper-2"), noteTextColor: v("--ink"), noteBorderColor: v("--edge"),
+      actorBkg: v("--paper-2"), actorBorder: v("--edge"), actorTextColor: v("--ink"),
+      signalColor: v("--ink-2"), signalTextColor: v("--ink"), labelBoxBkgColor: v("--paper-2"),
+      edgeLabelBackground: v("--card"), clusterBkg: v("--paper-2"),
+    },
+    flowchart: { curve: "basis", htmlLabels: true },
+    sequence: { mirrorActors: false },
+  });
+</script>
+</body>
+</html>

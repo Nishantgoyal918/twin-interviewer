@@ -1,0 +1,93 @@
+# All tunables live here. Secrets live in env vars (.env / Vercel), never here.
+# [VERIFY] model names against current OpenAI docs before first real run.
+
+models:
+  brief_compiler: gpt-5-mini
+  text_agent: gpt-5-mini
+  observer: gpt-5-mini
+  probe_questions: gpt-5-mini
+  probe_judge: gpt-5-mini
+  twin: gpt-5-mini
+  speech_habits: gpt-5-mini
+  sim_judge: gpt-5-mini       # dev simulator scorecards only
+  sim_persona: gpt-5-mini     # dev simulator: how each interviewer turn lands
+  embedding: text-embedding-3-small
+  embedding_dim: 1536
+
+# Reasoning effort per task (gpt-5 family). Measured 2026-11-02: default effort made replies
+# take 10-16 s and analyze 36 s; "low" gives ~5 s replies and ~6 s analyze.
+reasoning:
+  brief_compiler: low
+  text_agent: low        # "minimal" is ~2 s but loops on its own last question
+  observer: low
+  probe_questions: low
+  probe_judge: low
+  twin: low
+  speech_habits: low
+  sim_judge: medium      # low effort gave flaky fact judgements
+  sim_persona: low       # runs between turns; must be quick
+
+voice:
+  model: gpt-live-1
+  voice: marin               # Hindi-capable voice per docs: nira
+  acknowledgement_delay_ms: 800
+  price_per_minute_usd: 0.05
+  init_billed_seconds: 15
+
+deepgram:
+  model: nova-3
+  language: multi
+  language_hints: [en, hi]
+  filler_words: true
+  punctuate: true
+  price_per_minute_usd: 0.0058   # [VERIFY]
+
+session:
+  default_target_minutes: 20
+  default_max_minutes: 30
+  text_idle_end_hours: 12
+  voice_idle_end_minutes: 30
+  token_grace_minutes: 30
+  wrap_grace_seconds: 60
+  recent_chars: 5000
+  notes_chars: 2000
+
+turn:
+  lock_ttl_ms: 90000
+  lock_wait_ms: 5000
+  idem_ttl_s: 86400
+  text_burst_idle_s: 8
+  backchannel_max_words: 2
+
+signals:
+  action_confidence: 0.5
+  min_baseline_turns: 20
+  cold_start_confidence_cap: 0.4
+  trend_window: 3
+  trend_min: 2
+
+coverage:
+  register_min_words: 2000
+  stability_sessions: 3
+  stability_tolerance: 0.15
+  probes_per_session: 5
+
+caps:
+  ip_requests_per_minute: 60
+  twin_voice_seconds_per_day: 1800
+  twin_sessions_per_day: 10
+  global_spend_usd_per_day: 5.0
+  llm_usd_per_1k_tokens: 0.002    # rough blended estimate for the spend breaker
+
+recording:
+  segment_seconds: 60
+  overlap_seconds: 2
+  transcribe_recheck_delay_s: 300
+  transcribe_recheck_max: 6
+
+redis:
+  state_ttl_s: 86400
+  spec_ttl_s: 3600
+
+flags:
+  worker_enabled: false

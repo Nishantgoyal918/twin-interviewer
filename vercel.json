@@ -1,0 +1,18 @@
+{
+  "regions": ["bom1"],
+  "functions": {
+    "api/index.py": { "maxDuration": 300 }
+  },
+  "rewrites": [
+    { "source": "/s/:token/voice", "destination": "/voice.html" },
+    { "source": "/s/:token/chat", "destination": "/chat.html" },
+    { "source": "/s/:token", "destination": "/subject.html" },
+    { "source": "/creator", "destination": "/creator.html" },
+    { "source": "/design-doc", "destination": "/design-doc.html" },
+    { "source": "/design-doc/full", "destination": "/design-doc-full.html" },
+    { "source": "/design-doc-v2", "destination": "/design-doc-v2.html" }
+  ],
+  "crons": [
+    { "path": "/api/cron/daily", "schedule": "0 3 * * *" }
+  ]
+}

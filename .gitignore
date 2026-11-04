@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.data/
+.vercel/
+
+.vercel
+.env*
+
+!.env.example
