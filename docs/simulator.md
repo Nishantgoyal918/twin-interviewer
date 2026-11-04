@@ -129,6 +129,28 @@ is earned:
 - Treat the results as regression tests and a way to find behaviour bugs, not as proof of
   quality with real people.
 
+## Production runs (new planner, 2026-11-02 evening)
+
+All five personas on the deployed app, after the breadth-first planner, bridge policy and
+goodbye fixes. Scorecards live in storage (`sim/<session>.md`) and on each simulated twin's
+session page in `/creator`, with the whole-call recording.
+
+| Persona | Brief topics | Facts mentioned | Avg energy | Good turns | Mood read |
+|---|---|---|---|---|---|
+| Kavya | 4/5 | 3/6 | 8.8 | 77% | 19% |
+| Ramesh (starts bored) | 2/4 | 5/8 | 6.2 (2 → 5.5) | 64% | 35% |
+| Rohan | 4/5 | 3/9 | 9.7 | 75% | 0% |
+| Sunita | 4/4 | 8/11 | 8.6 | 77% | 14% |
+| Venkat (starts bored) | 3/4 | 3/6 | 8.5 | 80% | 4% |
+
+- Coverage: 17 of 22 brief topics across the five calls (before the planner fix, Kavya and
+  Venkat each covered 3/5), with energy kept high.
+- The interviewer no longer copies Venkat's "correct" (0 times). His twin says it 7.3 per 100
+  words (he says 10.7) and got 3/3 probe answers right.
+- Mood read is the weak point (0–35%). Venkat's engaged answers open with "What to say…" and
+  read as flat; fragments of excited speech read as uncertain.
+- Venkat's first attempt failed at setup with a 504 from the brief compiler; a re-run worked.
+
 ## Results (2026-11-02)
 
 Latest run per persona. Scorecards and recordings are in `.data/sim/` and listed on `/dev/sim`.
